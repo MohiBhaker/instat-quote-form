@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Instant PCB Quote Form
  * Description: A powerful instant PCB calculation form with WooCommerce integration and in-form checkout.
- * Version: 1.5
+ * Version: 1.6
  * Author: Mohit Kumar
  */
 
