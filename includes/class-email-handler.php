@@ -189,6 +189,61 @@ class Instant_Form_Email_Handler {
         self::do_send_customer( $replacements, $customer_email );
     }
 
+    // ── Send Quote Only Emails ──
+    public static function send_quote_emails( $data ) {
+        $specs          = $data['specs'];
+        $customer_name  = $data['name'];
+        $customer_email = $data['email'];
+        $part_number    = $data['part_number'];
+        $total_price    = '$' . $specs['calculation']['total_price'];
+
+        $replacements = array(
+            '[order_id]'         => 'QUOTE',
+            '[date]'             => date_i18n( get_option( 'date_format' ) ),
+            '[customer_name]'    => $customer_name,
+            '[customer_email]'   => $customer_email,
+            '[part_number]'      => $part_number,
+            '[total_price]'      => $total_price,
+            '[payment_method]'   => 'Quote Only',
+            '[quantity]'         => isset( $specs['qty'] )              ? $specs['qty']              : '',
+            '[board_size]'       => isset( $specs['size'] )             ? $specs['size']             : '',
+            '[layers]'           => isset( $specs['layers'] )           ? $specs['layers']           : '',
+            '[thickness]'        => isset( $specs['thickness'] )        ? $specs['thickness']        : '',
+            '[copper]'           => isset( $specs['copper'] )           ? $specs['copper']           : '',
+            '[surface_finish]'   => isset( $specs['finish'] )           ? $specs['finish']           : '',
+            '[solder_mask]'      => isset( $specs['mask'] )             ? $specs['mask']             : '',
+            '[silkscreen]'       => isset( $specs['silk'] )             ? $specs['silk']             : '',
+            '[special_req]'      => isset( $specs['req'] )              ? $specs['req']              : 'None',
+            '[pcb_cost]'         => isset( $specs['calculation']['pcb_cost'] )  ? '$' . $specs['calculation']['pcb_cost']  : '',
+            '[shipping_cost]'    => isset( $specs['calculation']['shipping'] )   ? '$' . $specs['calculation']['shipping']   : '',
+            '[build_time]'       => isset( $specs['calculation']['build_time'] ) ? $specs['calculation']['build_time']             : '',
+            '[total_area]'       => isset( $specs['calculation']['area'] )       ? $specs['calculation']['area']                   : '',
+            '[shipping_address]' => 'N/A',
+            '[shipping_city]'    => 'N/A',
+            '[shipping_state]'   => 'N/A',
+            '[shipping_zip]'     => 'N/A',
+            '[shipping_country]' => 'N/A',
+            '[gerber_link]'      => 'No file attached',
+            '[gerber_url]'       => '',
+            '[all_gerber_urls]'  => '',
+        );
+
+        // Admin Quote Email
+        $admin_to = get_option( 'instant_form_admin_email' ) ?: get_option( 'admin_email' );
+        $admin_subject = self::apply_replacements( get_option( 'instant_form_quote_admin_subject', 'NEW PCB QUOTE REQUEST: [part_number]' ), $replacements );
+        $admin_body = self::apply_replacements( get_option( 'instant_form_quote_admin_content', self::get_default_quote_admin_template() ), $replacements );
+        $admin_hdrs = self::build_headers( $customer_email, $customer_name );
+        wp_mail( $admin_to, $admin_subject, $admin_body, $admin_hdrs );
+
+        // Customer Quote Email
+        $cust_subject = self::apply_replacements( get_option( 'instant_form_quote_customer_subject', 'Your PCB Quote: [part_number]' ), $replacements );
+        $cust_body = self::apply_replacements( get_option( 'instant_form_quote_customer_content', self::get_default_quote_customer_template() ), $replacements );
+        $cust_hdrs = self::build_headers( $admin_to );
+        wp_mail( $customer_email, $cust_subject, $cust_body, $cust_hdrs );
+        
+        return true;
+    }
+
     // ── Send admin email ──────────────────────────────────────────────────────
     private static function do_send_admin( $replacements, $gerber_files, $reply_name, $reply_email ) {
         $admin_to = get_option( 'instant_form_admin_email' );
@@ -378,6 +433,60 @@ class Instant_Form_Email_Handler {
             </div>
 
             <p>We will review your Gerber files and begin production once confirmed. You will receive a shipping update soon.</p>",
+            "&copy; " . date( 'Y' ) . " " . get_bloginfo( 'name' ) . ". All rights reserved."
+        );
+    }
+
+    public static function get_default_quote_admin_template() {
+        return self::email_wrap(
+            "<h3 style='margin-top:0;color:#0056b3;'>New PCB Quote Request</h3>
+            <p><strong>Part Number:</strong> [part_number]</p>
+
+            <div style='background:#f8f9fa;padding:15px;border-radius:6px;margin:20px 0;border:1px solid #e9ecef;'>
+                <strong>Customer Details:</strong><br>
+                Name: [customer_name]<br>
+                Email: <a href='mailto:[customer_email]'>[customer_email]</a>
+            </div>
+
+            <div style='background:#f8f9fa;padding:15px;border-radius:6px;margin:20px 0;border:1px solid #e9ecef;'>
+                <strong>PCB Specs:</strong><br>
+                Qty: [quantity] &nbsp;|&nbsp; Size: [board_size]<br>
+                Layers: [layers] &nbsp;|&nbsp; Thickness: [thickness]\"<br>
+                Copper: [copper]oz &nbsp;|&nbsp; Finish: [surface_finish]<br>
+                Mask: [solder_mask] &nbsp;|&nbsp; Silk: [silkscreen]<br>
+                Build Time: [build_time]
+            </div>
+
+            <div style='text-align:center;margin-top:30px;'>
+                <div style='font-size:28px;color:#28a745;font-weight:bold;'>[total_price]</div>
+                <p>User requested a quote only, no order created yet.</p>
+            </div>",
+            "Quote Request Notification"
+        );
+    }
+
+    public static function get_default_quote_customer_template() {
+        return self::email_wrap(
+            "<h3 style='margin-top:0;'>Hi [customer_name],</h3>
+            <p>Here is the PCB quote you requested for part number <strong>[part_number]</strong>.</p>
+
+            <div style='background:#f0f7ff;padding:20px;border-radius:8px;margin:25px 0;border:1px solid #cce5ff;text-align:center;'>
+                <span style='display:block;font-size:14px;color:#555;'>Estimated Total</span>
+                <span style='display:block;font-size:32px;color:#28a745;font-weight:bold;'>[total_price]</span>
+            </div>
+
+            <div style='margin-bottom:25px;'>
+                <h4 style='border-bottom:2px solid #eee;padding-bottom:10px;margin-bottom:15px;'>Quote Summary</h4>
+                <table style='width:100%;border-collapse:collapse;'>
+                    <tr><td style='padding:8px 0;color:#666;'>Board Size:</td><td style='font-weight:bold;'>[board_size]</td></tr>
+                    <tr><td style='padding:8px 0;color:#666;'>Quantity:</td><td style='font-weight:bold;'>[quantity] pcs</td></tr>
+                    <tr><td style='padding:8px 0;color:#666;'>Layers:</td><td style='font-weight:bold;'>[layers]</td></tr>
+                    <tr><td style='padding:8px 0;color:#666;'>Surface Finish:</td><td style='font-weight:bold;'>[surface_finish]</td></tr>
+                    <tr><td style='padding:8px 0;color:#666;'>Est. Build Time:</td><td style='font-weight:bold;'>[build_time]</td></tr>
+                </table>
+            </div>
+
+            <p>If you are ready to proceed, please go back to our website and complete the order.</p>",
             "&copy; " . date( 'Y' ) . " " . get_bloginfo( 'name' ) . ". All rights reserved."
         );
     }

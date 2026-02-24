@@ -17,6 +17,9 @@ class Instant_Form_Handler {
 
         add_action( 'wp_ajax_instant_form_process_checkout', array( __CLASS__, 'process_checkout' ) );
         add_action( 'wp_ajax_nopriv_instant_form_process_checkout', array( __CLASS__, 'process_checkout' ) );
+
+        add_action( 'wp_ajax_instant_form_send_quote', array( __CLASS__, 'send_quote' ) );
+        add_action( 'wp_ajax_nopriv_instant_form_send_quote', array( __CLASS__, 'send_quote' ) );
     }
 
     private static function ensure_session() {
@@ -292,6 +295,32 @@ class Instant_Form_Handler {
         } catch ( Exception $e ) {
             error_reporting( $prev );
             wp_send_json_error( 'Server error: ' . $e->getMessage() );
+        }
+    }
+
+    public static function send_quote() {
+        try {
+            $name        = sanitize_text_field( $_POST['name'] ?? '' );
+            $email       = sanitize_email( $_POST['email'] ?? '' );
+            $part_number = sanitize_text_field( $_POST['part_number'] ?? '' );
+            $specs       = json_decode( stripslashes( $_POST['specs'] ?? '{}' ), true );
+
+            if ( empty( $name ) || ! is_email( $email ) ) {
+                wp_send_json_error( 'Valid name and email are required.' );
+            }
+
+            $data = array(
+                'name'        => $name,
+                'email'       => $email,
+                'part_number' => $part_number,
+                'specs'       => $specs
+            );
+
+            Instant_Form_Email_Handler::send_quote_emails( $data );
+
+            wp_send_json_success( 'Quote has been sent to your email address.' );
+        } catch ( Exception $e ) {
+            wp_send_json_error( $e->getMessage() );
         }
     }
 }

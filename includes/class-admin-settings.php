@@ -33,6 +33,12 @@ class Instant_Form_Admin_Settings {
             update_option( 'instant_form_admin_content', wp_kses_post( $_POST['admin_content'] ) );
             update_option( 'instant_form_customer_subject', sanitize_text_field( $_POST['customer_subject'] ) );
             update_option( 'instant_form_customer_content', wp_kses_post( $_POST['customer_content'] ) );
+            
+            update_option( 'instant_form_quote_admin_subject', sanitize_text_field( $_POST['quote_admin_subject'] ) );
+            update_option( 'instant_form_quote_admin_content', wp_kses_post( $_POST['quote_admin_content'] ) );
+            update_option( 'instant_form_quote_customer_subject', sanitize_text_field( $_POST['quote_customer_subject'] ) );
+            update_option( 'instant_form_quote_customer_content', wp_kses_post( $_POST['quote_customer_content'] ) );
+
             echo '<div class="updated"><p>Settings Saved!</p></div>';
         }
 
@@ -66,7 +72,7 @@ class Instant_Form_Admin_Settings {
 
                 <hr>
 
-                <h2>Admin Notification Email</h2>
+                <h2>Admin Notification (Paid Order)</h2>
                 <table class="form-table">
                     <tr>
                         <th><label>Admin Email To:</label></th>
@@ -84,7 +90,7 @@ class Instant_Form_Admin_Settings {
 
                 <hr>
 
-                <h2>Customer Confirmation Email</h2>
+                <h2>Customer Confirmation (Paid Order)</h2>
                 <table class="form-table">
                     <tr>
                         <th><label>Subject:</label></th>
@@ -95,6 +101,37 @@ class Instant_Form_Admin_Settings {
                         <td><?php wp_editor( $cust_cont, 'customer_content', array( 'textarea_rows' => 10 ) ); ?></td>
                     </tr>
                 </table>
+
+                <hr>
+                <div style="background:#f0f7ff; padding:20px; border:1px solid #007bff; border-radius:8px; margin:20px 0;">
+                    <h2>Quote Only Emails (Sent when "Send Quote" button is clicked)</h2>
+                    
+                    <h3>Admin Notification (Quote Only)</h3>
+                    <table class="form-table">
+                        <tr>
+                            <th><label>Subject:</label></th>
+                            <td><input type="text" name="quote_admin_subject" value="<?php echo esc_attr( get_option( 'instant_form_quote_admin_subject', 'NEW PCB QUOTE REQUEST: [part_number]' ) ); ?>" class="large-text"></td>
+                        </tr>
+                        <tr>
+                            <th><label>Email Body:</label></th>
+                            <td><?php wp_editor( get_option( 'instant_form_quote_admin_content', Instant_Form_Email_Handler::get_default_quote_admin_template() ), 'quote_admin_content', array( 'textarea_rows' => 10 ) ); ?></td>
+                        </tr>
+                    </table>
+
+                    <hr>
+
+                    <h3>Customer Confirmation (Quote Only)</h3>
+                    <table class="form-table">
+                        <tr>
+                            <th><label>Subject:</label></th>
+                            <td><input type="text" name="quote_customer_subject" value="<?php echo esc_attr( get_option( 'instant_form_quote_customer_subject', 'Your PCB Quote: [part_number]' ) ); ?>" class="large-text"></td>
+                        </tr>
+                        <tr>
+                            <th><label>Email Body:</label></th>
+                            <td><?php wp_editor( get_option( 'instant_form_quote_customer_content', Instant_Form_Email_Handler::get_default_quote_customer_template() ), 'quote_customer_content', array( 'textarea_rows' => 10 ) ); ?></td>
+                        </tr>
+                    </table>
+                </div>
 
                 <p class="submit">
                     <input type="submit" name="instant_form_save_settings" class="button button-primary" value="Save Email Settings">
