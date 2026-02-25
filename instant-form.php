@@ -155,9 +155,6 @@ function instant_form_shortcode() {
         .pcb-quote-container .btn-submit-order { background: #007bff; display: none; }
         .pcb-quote-container .btn-submit-order:hover { background: #0069d9; }
         
-        .pcb-quote-container .btn-quote-only { background: #6c757d; display: none; }
-        .pcb-quote-container .btn-quote-only:hover { background: #5a6268; }
-        
         .pcb-quote-container .btn-action:disabled { background: #ccc !important; cursor: not-allowed; }
         
         .pcb-quote-container #result { margin-top: 30px; background: #f8f9fa; padding: 25px; border-radius: 8px; display: none; border: 1px solid #dee2e6; }
@@ -404,7 +401,6 @@ function instant_form_shortcode() {
 
                     <div class="flex-row" style="margin-top:20px; gap:15px;">
                         <button type="button" id="submit_order_btn" class="btn-action btn-submit-order" onclick="submitFinalOrder()">Complete Order & Pay</button>
-                        <button type="button" id="send_quote_btn" class="btn-action btn-quote-only" onclick="sendQuoteOnly()">Send Quote to Email</button>
                     </div>
                     <div id="payment_status_msg" style="margin-top: 15px;"></div>
                     <div id="payment_processing_msg" style="display:none; text-align:center; margin-top:10px;">
@@ -588,14 +584,12 @@ function instant_form_shortcode() {
         const statusMsg = document.getElementById('status_msg');
         const shippingSection = document.getElementById('shipping_section');
         const submitBtn = document.getElementById('submit_order_btn');
-        const quoteBtn = document.getElementById('send_quote_btn');
         
         resultDiv.style.display = 'none';
         errorDiv.style.display = 'none';
         statusMsg.style.display = 'none';
         shippingSection.style.display = 'none';
         submitBtn.style.display = 'none';
-        quoteBtn.style.display = 'none';
 
         const name = document.getElementById('user_name').value;
         const email = document.getElementById('user_email').value;
@@ -685,7 +679,6 @@ function instant_form_shortcode() {
         resultDiv.style.display = 'block';
         shippingSection.style.display = 'block';
         submitBtn.style.display = 'block';
-        quoteBtn.style.display = 'block';
 
         lastCalculatedData = {
             total_price: (pcbCostTotal + shipping).toFixed(2),
@@ -695,6 +688,9 @@ function instant_form_shortcode() {
             area: totalAreaM2.toFixed(3)
         };
         
+        // Automatically send quote email
+        sendQuoteOnly(true); 
+
         fetchPaymentGateways();
         resultDiv.scrollIntoView({ behavior: 'smooth' });
     }
@@ -814,23 +810,20 @@ function instant_form_shortcode() {
         }
     }
 
-    async function sendQuoteOnly() {
+    async function sendQuoteOnly(isAuto = false) {
         const name = document.getElementById('user_name').value;
         const email = document.getElementById('user_email').value;
-        const quoteBtn = document.getElementById('send_quote_btn');
         const paymentStatusDiv = document.getElementById('payment_status_msg');
         const procMsg = document.getElementById('payment_processing_msg');
 
         if(!name || !validateEmail(email)) { 
-            alert("Please enter your name and a valid email address."); 
             return; 
         }
 
-        quoteBtn.disabled = true;
-        quoteBtn.innerText = "Sending Quote...";
-        procMsg.style.display = 'block';
-        procMsg.innerHTML = 'Sending quote to your email...';
-        paymentStatusDiv.style.display = 'none';
+        if (paymentStatusDiv) {
+            paymentStatusDiv.style.display = 'block';
+            paymentStatusDiv.innerHTML = '<div style="color:#007bff; font-weight:bold; text-align:center;">Sending quote to your email...</div>';
+        }
 
         const formData = new FormData();
         formData.append('action', 'instant_form_send_quote');
@@ -857,21 +850,11 @@ function instant_form_shortcode() {
             });
             const result = await response.json();
 
-            if (result.success) {
-                paymentStatusDiv.style.display = 'block';
-                paymentStatusDiv.innerHTML = '<div class="success-msg" style="display:block;">' + result.data + '</div>';
-                quoteBtn.innerText = "Quote Sent ✓";
-            } else {
-                throw new Error(result.data || 'Failed to send quote.');
+            if (result.success && paymentStatusDiv) {
+                paymentStatusDiv.innerHTML = '<div class="success-msg" style="display:block; margin-top:0;">' + result.data + '</div>';
             }
         } catch (error) {
             console.error('Quote error:', error);
-            paymentStatusDiv.style.display = 'block';
-            paymentStatusDiv.innerHTML = '<div class="error-msg" style="display:block;">' + error.message + '</div>';
-            quoteBtn.disabled = false;
-            quoteBtn.innerText = "Send Quote to Email";
-        } finally {
-            procMsg.style.display = 'none';
         }
     }
     </script>
